@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Loading Orb</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --orb-a: #ffe14d;
+    --orb-b: #ffb300;
+    --eye: #ffffff;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  .orb-wrap {
+    position: relative;
+    width: 96px;
+    height: 96px;
+  }
+
+  .floater {
+    width: 100%;
+    height: 100%;
+    animation: float 2.4s ease-in-out infinite;
+  }
+
+  .tilter {
+    width: 100%;
+    height: 100%;
+  }
+
+  .tilter.pop {
+    animation: pop 0.6s ease-out;
+  }
+
+  .tilter.tilt {
+    animation: tilt 0.9s ease-in-out;
+  }
+
+  .tilter.shake {
+    animation: shake 0.6s ease-in-out;
+  }
+
+  .orb {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, #fff2a8 0%, var(--orb-a) 32%, var(--orb-b) 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: breathe 2.4s ease-in-out infinite, glow 3.6s ease-in-out infinite;
+    box-shadow:
+      inset -7px -7px 16px rgba(0, 0, 0, 0.18),
+      inset 5px 5px 12px rgba(255, 255, 255, 0.35),
+      0 8px 24px rgba(255, 179, 0, 0.35);
+  }
+
+  .face {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: transform 0.25s ease;
+  }
+
+  .face.look-left {
+    transform: translateX(-6px);
+  }
+
+  .face.look-right {
+    transform: translateX(6px);
+  }
+
+  .eye {
+    background: var(--eye);
+    transition: width 0.18s ease, height 0.18s ease, border-radius 0.18s ease, transform 0.18s ease;
+  }
+
+  .eye.normal {
+    width: 7px;
+    height: 17px;
+    border-radius: 3.5px;
+    transform: scaleY(1);
+  }
+
+  .eye.closed {
+    width: 7px;
+    height: 17px;
+    border-radius: 3.5px;
+    transform: scaleY(0.08);
+  }
+
+  .eye.happy {
+    width: 15px;
+    height: 9px;
+    border-radius: 50% 50% 0 0;
+    transform: scaleY(1);
+  }
+
+  .eye.wide {
+    width: 10px;
+    height: 22px;
+    border-radius: 5px;
+    transform: scaleY(1);
+  }
+
+  .eye.sleepy {
+    width: 8px;
+    height: 6px;
+    border-radius: 3px;
+    transform: scaleY(1);
+  }
+
+  .shadow {
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    width: 70%;
+    height: 10px;
+    background: radial-gradient(ellipse at center, rgba(255, 179, 0, 0.3) 0%, rgba(255, 179, 0, 0) 70%);
+    transform: translateX(-50%);
+    border-radius: 50%;
+    animation: shadow-pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  @keyframes glow {
+    0%, 100% {
+      box-shadow:
+        inset -7px -7px 16px rgba(0, 0, 0, 0.18),
+        inset 5px 5px 12px rgba(255, 255, 255, 0.35),
+        0 8px 24px rgba(255, 179, 0, 0.35);
+    }
+    50% {
+      box-shadow:
+        inset -7px -7px 16px rgba(0, 0, 0, 0.18),
+        inset 5px 5px 12px rgba(255, 255, 255, 0.35),
+        0 8px 34px rgba(255, 179, 0, 0.6);
+    }
+  }
+
+  @keyframes shadow-pulse {
+    0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.35; }
+    50% { transform: translateX(-50%) scale(0.8); opacity: 0.18; }
+  }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.22); }
+    60% { transform: scale(0.94); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes tilt {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-9deg); }
+    75% { transform: rotate(9deg); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .floater, .orb, .shadow, .tilter.pop, .tilter.tilt, .tilter.shake {
+      animation: none;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="orb-wrap">
+    <div class="floater">
+      <div class="tilter" id="tilter">
+        <div class="orb">
+          <div class="face" id="face">
+            <div class="eye left normal" id="eyeL"></div>
+            <div class="eye right normal" id="eyeR"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shadow"></div>
+  </div>
+
+<script>
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var face = document.getElementById('face');
+  var eyeL = document.getElementById('eyeL');
+  var eyeR = document.getElementById('eyeR');
+  var tilter = document.getElementById('tilter');
+
+  // Each step describes a few seconds of "personality":
+  // eyes: shape applied to both eyes | eyeL/eyeR: shape for one eye only (wink)
+  // face: look-left / look-right shifts both eyes sideways
+  // orb: pop / tilt / shake, a matching flourish on the whole orb
+  var sequence = [
+    { duration: 1600 },
+    { duration: 200,  eyes: 'closed' },                 // blink
+    { duration: 1200 },
+    { duration: 900,  eyes: 'happy', orb: 'tilt' },      // happy
+    { duration: 1000 },
+    { duration: 450,  eyeL: 'closed' },                  // wink left
+    { duration: 1100 },
+    { duration: 700,  eyes: 'wide', orb: 'pop' },        // surprised
+    { duration: 900 },
+    { duration: 650,  face: 'look-left' },
+    { duration: 650,  face: 'look-right' },
+    { duration: 800 },
+    { duration: 1500, eyes: 'sleepy' },                  // sleepy
+    { duration: 900 },
+    { duration: 220,  eyes: 'closed' },                  // blink
+    { duration: 500 },
+    { duration: 600,  eyeR: 'closed' },                  // wink right
+    { duration: 1000 },
+    { duration: 700,  eyes: 'wide', orb: 'shake' },      // excited
+    { duration: 1200 }
+  ];
+
+  function applyStep(step) {
+    var eyeLClass = step.eyes || step.eyeL || 'normal';
+    var eyeRClass = step.eyes || step.eyeR || 'normal';
+    eyeL.className = 'eye left ' + eyeLClass;
+    eyeR.className = 'eye right ' + eyeRClass;
+    face.className = 'face' + (step.face ? ' ' + step.face : '');
+
+    tilter.classList.remove('pop', 'tilt', 'shake');
+    if (step.orb) {
+      void tilter.offsetWidth; // restart animation even if same class as before
+      tilter.classList.add(step.orb);
+    }
+  }
+
+  var i = 0;
+  function loop() {
+    var step = sequence[i % sequence.length];
+    applyStep(step);
+    i++;
+    setTimeout(loop, step.duration);
+  }
+
+  if (!reduceMotion) {
+    loop();
+  }
+</script>
+</body>
+</html>
