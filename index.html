@@ -117,42 +117,47 @@
   }
 
   .eye {
-    background: var(--eye);
-    transition: width 0.18s ease, height 0.18s ease, border-radius 0.18s ease, transform 0.18s ease;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 3px solid var(--eye);
+    background: transparent;
+    transition: width 0.18s ease, height 0.18s ease, border-width 0.18s ease, clip-path 0.18s ease, transform 0.18s ease;
   }
 
   .eye.normal {
-    width: 7px;
-    height: 17px;
-    border-radius: 3.5px;
+    width: 16px;
+    height: 16px;
+    clip-path: none;
     transform: scaleY(1);
   }
 
   .eye.closed {
-    width: 7px;
-    height: 17px;
-    border-radius: 3.5px;
-    transform: scaleY(0.08);
+    width: 16px;
+    height: 16px;
+    clip-path: none;
+    transform: scaleY(0.12);
   }
 
   .eye.happy {
-    width: 15px;
-    height: 9px;
-    border-radius: 50% 50% 0 0;
+    width: 18px;
+    height: 18px;
+    clip-path: inset(0 0 48% 0);
     transform: scaleY(1);
   }
 
   .eye.wide {
-    width: 10px;
-    height: 22px;
-    border-radius: 5px;
+    width: 24px;
+    height: 24px;
+    border-width: 3.5px;
+    clip-path: none;
     transform: scaleY(1);
   }
 
   .eye.sleepy {
-    width: 8px;
-    height: 6px;
-    border-radius: 3px;
+    width: 16px;
+    height: 16px;
+    clip-path: inset(0 0 60% 0);
     transform: scaleY(1);
   }
 
@@ -224,6 +229,67 @@
     50% { transform: translate(3px, -3px); }
   }
 
+  #intro {
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    pointer-events: none;
+    animation: intro-out 1.3s ease forwards;
+  }
+
+  #intro::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #ffffff;
+    opacity: 0;
+    animation: white-flash 0.9s ease forwards;
+  }
+
+  #intro .flash-ring {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      #000000 0%, #000000 54%,
+      #8f8f8f 54%, #8f8f8f 78%,
+      #ffffff 78%, #ffffff 100%
+    );
+    animation: ring-flash 0.95s cubic-bezier(0.16, 0.84, 0.44, 1) forwards;
+  }
+
+  @keyframes ring-flash {
+    0%   { transform: scale(0.25); opacity: 0; }
+    30%  { transform: scale(1.1);  opacity: 1; }
+    55%  { transform: scale(0.92); opacity: 1; }
+    100% { transform: scale(1.6);  opacity: 0; }
+  }
+
+  @keyframes white-flash {
+    0%   { opacity: 0; }
+    12%  { opacity: 0.9; }
+    30%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes intro-out {
+    0%, 60% { opacity: 1; visibility: visible; }
+    100% { opacity: 0; visibility: hidden; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #intro, #intro::before, #intro .flash-ring {
+      animation: none;
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .floater, .orb, .shadow, .tilter.pop, .tilter.tilt, .tilter.shake, .face.think {
       animation: none;
@@ -232,6 +298,10 @@
 </style>
 </head>
 <body>
+  <div id="intro">
+    <div class="flash-ring"></div>
+  </div>
+
   <div id="dock">
     <div class="orb-wrap">
       <div class="floater">
