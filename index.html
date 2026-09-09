@@ -313,6 +313,132 @@
     animation: letter-talk 0.5s ease forwards;
   }
 
+  /* Course pack pills, below the docked orb — same bubble styling,
+     as individual pill-shaped buttons rather than one text box */
+  #packWrap {
+    position: fixed;
+    top: 90px;
+    left: 20px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 220px;
+  }
+
+  .pack-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: #ffffff;
+    border: 2px solid #b8b8b8;
+    border-radius: 999px;
+    padding: 9px 8px 9px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4a3200;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    cursor: pointer;
+  }
+
+  .pack-pill.show {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .pack-pill .pack-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pack-pill .pack-remove {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: none;
+    color: #b8b8b8;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pack-pill .pack-remove:active {
+    background: #f0f0f0;
+    color: #888888;
+  }
+
+  /* QR scanner overlay */
+  #scannerOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #000000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 24px;
+  }
+
+  #scannerOverlay.open {
+    display: flex;
+  }
+
+  #scannerBox {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    aspect-ratio: 1 / 1;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #111111;
+  }
+
+  #scannerVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  #scannerBox .scan-frame {
+    position: absolute;
+    inset: 14%;
+    border: 3px solid var(--orb-a);
+    border-radius: 14px;
+    pointer-events: none;
+    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.25);
+  }
+
+  #scannerStatus {
+    color: #ffffff;
+    font-size: 14px;
+    text-align: center;
+    max-width: 300px;
+    margin: 0;
+  }
+
+  #scannerCancel {
+    background: #ffffff;
+    color: #333333;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
   .shadow {
     position: absolute;
     bottom: -12px;
@@ -551,6 +677,7 @@
     .ripple, .flash-core { opacity: 0; }
     #bubble { transition: none; }
     .talk-letter { animation: none; opacity: 1; }
+    .pack-pill { transition: none; }
   }
 </style>
 </head>
@@ -588,6 +715,18 @@
   <div id="bubble">
     <span id="bubbleText"></span>
   </div>
+
+  <div id="packWrap"></div>
+
+  <div id="scannerOverlay">
+    <div id="scannerBox">
+      <video id="scannerVideo" playsinline autoplay muted></video>
+      <div class="scan-frame"></div>
+    </div>
+    <p id="scannerStatus">Point your camera at a Naxos v2 course-pack QR code…</p>
+    <button id="scannerCancel">Cancel</button>
+  </div>
+  <canvas id="scannerCanvas" style="display:none;"></canvas>
 
   <div id="sheetBlur"></div>
 
@@ -637,6 +776,7 @@
     </button>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -650,10 +790,89 @@
   var bubble = document.getElementById('bubble');
   var bubbleText = document.getElementById('bubbleText');
   var sheetHandle = document.getElementById('sheetHandle');
+  var packWrap = document.getElementById('packWrap');
+
+  // --- Course packs, imported via QR code from Naxos v2 ---
+  var COURSE_PACKS_KEY = 'evia-course-packs';
+
+  function loadCoursePacks() {
+    try {
+      var raw = localStorage.getItem(COURSE_PACKS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveCoursePacks(packs) {
+    try {
+      localStorage.setItem(COURSE_PACKS_KEY, JSON.stringify(packs));
+    } catch (e) {
+      // storage unavailable (private browsing, etc.) — packs just won't persist
+    }
+  }
+
+  var coursePacks = loadCoursePacks();
+
+  function renderCoursePacks() {
+    packWrap.innerHTML = '';
+    coursePacks.forEach(function (pack, idx) {
+      var pill = document.createElement('div');
+      pill.className = 'pack-pill';
+      pill.style.transitionDelay = (idx * 70) + 'ms';
+
+      var name = document.createElement('span');
+      name.className = 'pack-name';
+      name.textContent = pack.name;
+      pill.appendChild(name);
+
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'pack-remove';
+      removeBtn.setAttribute('aria-label', 'Remove ' + pack.name);
+      removeBtn.textContent = '\u00D7';
+      removeBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        coursePacks = coursePacks.filter(function (p) {
+          return p.id !== pack.id;
+        });
+        saveCoursePacks(coursePacks);
+        renderCoursePacks();
+      });
+      pill.appendChild(removeBtn);
+
+      packWrap.appendChild(pill);
+    });
+  }
+
+  function showCoursePacks() {
+    renderCoursePacks();
+    requestAnimationFrame(function () {
+      packWrap.querySelectorAll('.pack-pill').forEach(function (p) {
+        p.classList.add('show');
+      });
+    });
+  }
+
+  function hideCoursePacks() {
+    packWrap.querySelectorAll('.pack-pill').forEach(function (p) {
+      p.classList.remove('show');
+    });
+  }
+
+  function addCoursePack(name) {
+    var trimmed = (name || '').trim();
+    if (!trimmed) return;
+    coursePacks.push({ id: 'pack-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7), name: trimmed });
+    saveCoursePacks(coursePacks);
+    if (docked) {
+      showCoursePacks();
+    }
+  }
 
   var BUBBLE_MESSAGE = 'Which of the jobs below are you working on today?';
   var bubbleTimer = null;
   var fabVisibilityTimer = null;
+  var packTimer = null;
 
   function buildBubbleText(message) {
     bubbleText.innerHTML = '';
@@ -782,6 +1001,13 @@
       fabVisibilityTimer = setTimeout(function () {
         sheetHandle.classList.add('visible');
       }, revealDelay);
+
+      clearTimeout(packTimer);
+      packTimer = setTimeout(function () {
+        if (coursePacks.length > 0) {
+          showCoursePacks();
+        }
+      }, revealDelay);
     } else {
       dock.classList.remove('docked');
       face.className = 'face';
@@ -793,6 +1019,9 @@
       if (typeof setSheetOpen === 'function') {
         setSheetOpen(false);
       }
+
+      clearTimeout(packTimer);
+      hideCoursePacks();
 
       if (!reduceMotion) {
         loop();
@@ -834,7 +1063,10 @@
   document.querySelectorAll('.sheet-row').forEach(function (btn) {
     btn.addEventListener('click', function () {
       setSheetOpen(false);
-      // hook up real navigation/actions here, e.g.:
+      if (btn.id === 'rowQr') {
+        openScanner();
+      }
+      // hook up real navigation/actions for the other rows here, e.g.:
       // if (btn.id === 'rowChat') { ... }
     });
   });
@@ -875,6 +1107,100 @@
 
   addSwipe(sheetHandle, function () { setSheetOpen(true); }, function () { setSheetOpen(false); });
   addSwipe(sheet, null, function () { setSheetOpen(false); });
+
+  // --- QR scanner: imports a course pack from a Naxos v2 QR code ---
+  var scannerOverlay = document.getElementById('scannerOverlay');
+  var scannerVideo = document.getElementById('scannerVideo');
+  var scannerCanvas = document.getElementById('scannerCanvas');
+  var scannerStatus = document.getElementById('scannerStatus');
+  var scannerCancel = document.getElementById('scannerCancel');
+  var scannerCtx = scannerCanvas.getContext('2d', { willReadFrequently: true });
+  var scannerStream = null;
+  var scanning = false;
+
+  function parseCoursePack(text) {
+    try {
+      var obj = JSON.parse(text);
+      var name = obj.name || obj.title || obj.courseName || String(text).slice(0, 60);
+      return name;
+    } catch (e) {
+      return String(text).slice(0, 60);
+    }
+  }
+
+  function scanFrame() {
+    if (!scanning) return;
+
+    if (scannerVideo.readyState === scannerVideo.HAVE_ENOUGH_DATA && window.jsQR) {
+      scannerCanvas.width = scannerVideo.videoWidth;
+      scannerCanvas.height = scannerVideo.videoHeight;
+      scannerCtx.drawImage(scannerVideo, 0, 0, scannerCanvas.width, scannerCanvas.height);
+      var imageData = scannerCtx.getImageData(0, 0, scannerCanvas.width, scannerCanvas.height);
+      var code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code && code.data) {
+        var packName = parseCoursePack(code.data);
+        addCoursePack(packName);
+        closeScanner();
+        return;
+      }
+    }
+    requestAnimationFrame(scanFrame);
+  }
+
+  function openScanner() {
+    scannerStatus.textContent = 'Point your camera at a Naxos v2 course-pack QR code…';
+    scannerOverlay.classList.add('open');
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      manualEntryFallback();
+      return;
+    }
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(function (stream) {
+        scannerStream = stream;
+        scannerVideo.srcObject = stream;
+        scannerVideo.play();
+        scanning = true;
+        requestAnimationFrame(scanFrame);
+      })
+      .catch(function () {
+        manualEntryFallback();
+      });
+  }
+
+  function closeScanner() {
+    scanning = false;
+    scannerOverlay.classList.remove('open');
+    if (scannerStream) {
+      scannerStream.getTracks().forEach(function (track) {
+        track.stop();
+      });
+      scannerStream = null;
+    }
+  }
+
+  function manualEntryFallback() {
+    closeScanner();
+    var name = window.prompt('Camera unavailable. Enter the course pack name from Naxos v2:');
+    if (name) {
+      addCoursePack(name);
+    }
+  }
+
+  scannerCancel.addEventListener('click', closeScanner);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && scannerOverlay.classList.contains('open')) {
+      closeScanner();
+    }
+  });
+
+  // Show any packs imported in a previous session if she's already docked
+  // on load (not the normal case, but keeps state consistent).
+  if (docked && coursePacks.length > 0) {
+    showCoursePacks();
+  }
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
